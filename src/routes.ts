@@ -1,3 +1,4 @@
+// src/routes.ts
 import express from 'express';
 import {
     createLottery,
@@ -10,24 +11,22 @@ import {
 
 const router = express.Router();
 
-// ROUTES
-
-// Create a new lottery (admin)
+// Admin: Create new lottery
 router.post('/lottery', createLottery);
 
 // Get current active lottery
 router.get('/lottery', getCurrentLottery);
 
-// Enter the current lottery
+// Enter a lottery
 router.post('/entry', enterLottery);
 
 // Get all entries for a specific lottery
 router.get('/entries/:lotteryId', getEntries);
 
-// Declare a winner (admin)
+// Admin: Declare winner(s)
 router.post('/winner', declareWinner);
 
-// Get past winners
+// Get all winners
 router.get('/winners', getWinners);
 
 export default router;

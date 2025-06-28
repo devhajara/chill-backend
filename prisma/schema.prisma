@@ -13,15 +13,20 @@ model Participant {
   createdAt DateTime @default(now())
 }
 
-
 model Lottery {
-  id         Int       @id @default(autoincrement())
-  name       String
-  startDate  DateTime
-  endDate    DateTime
-  entries    Entry[]
-  winners    Winner[]
+  id            Int       @id @default(autoincrement())
+  name          String
+  startDate     DateTime
+  endDate       DateTime
+  entryFee      Float     // ✅ REQUIRED FIELD
+  lotteryWallet String    // ✅ REQUIRED FIELD
+  autoPick      Boolean   // ✅ OPTIONAL for admin logic
+  numWinners    Int       // ✅ OPTIONAL for admin logic
+  entries       Entry[]
+  winners       Winner[]
 }
+
+
 
 
 model Entry {

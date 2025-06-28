@@ -1,112 +1,130 @@
+// src/controllers.ts
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient,} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// ✅ Create a new lottery
+// Create a new lottery (admin only)
 export const createLottery = async (req: Request, res: Response) => {
     try {
-        const { name, startDate, endDate } = req.body;
+        const { name, startDate, endDate, entryFee, lotteryWallet, autoPick, numWinners } = req.body;
+
         const lottery = await prisma.lottery.create({
             data: {
                 name,
                 startDate: new Date(startDate),
                 endDate: new Date(endDate),
-            },
+                entryFee: parseFloat(entryFee),
+                lotteryWallet,
+                autoPick,
+                numWinners
+            }
         });
-        res.status(201).json(lottery);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error creating lottery' });
+
+        return res.status(201).json(lottery);
+    } catch (error) {
+        return res.status(500).json({ error: 'Failed to create lottery', details: error });
     }
 };
 
-// ✅ Get the current active lottery
+// Get current active lottery
 export const getCurrentLottery = async (_req: Request, res: Response) => {
     try {
         const now = new Date();
-        const lottery = await prisma.lottery.findFirst({
+        const current = await prisma.lottery.findFirst({
             where: {
                 startDate: { lte: now },
                 endDate: { gte: now },
             },
-            orderBy: {
-                startDate: 'desc',
-            },
+            orderBy: { startDate: 'desc' }
         });
-        res.json(lottery);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error fetching current lottery' });
+        return res.json(current);
+    } catch (error) {
+        return res.status(500).json({ error: 'Failed to fetch current lottery' });
     }
 };
 
-// ✅ Enter the lottery
+// Enter a lottery
 export const enterLottery = async (req: Request, res: Response) => {
     try {
         const { wallet, lotteryId } = req.body;
-        const entry = await prisma.entry.create({
-            data: {
-                wallet,
-                lottery: { connect: { id: lotteryId } },
+
+        const existing = await prisma.entry.findUnique({
+            where: {
+                wallet_lotteryId: {
+                    wallet,
+                    lotteryId,
+                },
             },
         });
-        res.status(201).json(entry);
-    } catch (err: any) {
-        console.error(err);
-        if (err.code === 'P2002') {
-            res.status(400).json({ error: 'Wallet already entered this lottery.' });
-        } else {
-            res.status(500).json({ error: 'Error entering lottery' });
+
+        if (existing) {
+            return res.status(400).json({ error: 'Wallet already entered' });
         }
+
+        const EntryModel = await prisma.entry.create({
+            data: {
+                wallet,
+                lotteryId
+            }
+        });
+
+        return res.status(201).json(EntryModel);
+    } catch (error) {
+        return res.status(500).json({ error: 'Failed to enter lottery' });
     }
 };
 
-// ✅ Get all entries for a lottery
+// Get all entries for a specific lottery
 export const getEntries = async (req: Request, res: Response) => {
     try {
-        const { lotteryId } = req.params;
-        const entries = await prisma.entry.findMany({
-            where: { lotteryId: Number(lotteryId) },
-        });
-        res.json(entries);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error fetching entries' });
+        const lotteryId = parseInt(req.params.lotteryId, 10);
+        const entries = await prisma.entry.findMany({ where: { lotteryId } });
+        return res.json(entries);
+    } catch (error) {
+        return res.status(500).json({ error: 'Failed to fetch entries' });
     }
 };
 
-// ✅ Declare a winner
+// Declare winner(s)
 export const declareWinner = async (req: Request, res: Response) => {
     try {
-        const { wallet, lotteryId } = req.body;
-        const winner = await prisma.winner.create({
-            data: {
-                wallet,
-                lottery: { connect: { id: lotteryId } },
-            },
+        const { lotteryId, manualWinners } = req.body; // Optional: manualWinners: string[]
+        const lottery = await prisma.lottery.findUnique({ where: { id: lotteryId } });
+        if (!lottery) return res.status(404).json({ error: 'Lottery not found' });
+
+        const entries = await prisma.entry.findMany({ where: { lotteryId } });
+        if (entries.length === 0) return res.status(400).json({ error: 'No entries found' });
+
+        let selectedWinners: string[] = [];
+
+        if (lottery.autoPick) {
+            const shuffled = entries.sort(() => 0.5 - Math.random());
+        
+
+            selectedWinners = shuffled.slice(0, lottery.numWinners).map((e: any) => e.wallet);
+
+            if (!manualWinners || manualWinners.length === 0)
+                return res.status(400).json({ error: 'Manual winners required' });
+            selectedWinners = manualWinners;
+        }
+
+        await prisma.winner.createMany({
+            data: selectedWinners.map(wallet => ({ wallet, lotteryId }))
         });
-        res.status(201).json(winner);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error declaring winner' });
+
+        return res.status(201).json({ message: 'Winners declared', winners: selectedWinners });
+    } catch (error) {
+        return res.status(500).json({ error: 'Failed to declare winners' });
     }
 };
 
-// ✅ Get all past winners
+// Get all winners (can add filters later)
 export const getWinners = async (_req: Request, res: Response) => {
     try {
-        const winners = await prisma.winner.findMany({
-            include: {
-                lottery: true,
-            },
-            orderBy: {
-                createdAt: 'desc',
-            },
-        });
-        res.json(winners);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Error fetching winners' });
+        const winners = await prisma.winner.findMany({ orderBy: { createdAt: 'desc' } });
+        return res.json(winners);
+    } catch (error) {
+        return res.status(500).json({ error: 'Failed to fetch winners' });
     }
 };
