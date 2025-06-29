@@ -7,42 +7,54 @@ const prisma = new PrismaClient();
 // Create a new lottery (admin only)
 export const createLottery = async (req: Request, res: Response) => {
     try {
-        const { name, startDate, endDate, entryFee, lotteryWallet, autoPick, numWinners } = req.body;
-
-        console.log("💡 Received in POST /lottery:", req.body);
+        const {
+            name,
+            startDate,
+            endDate,
+            entryFee,
+            lotteryWallet,
+            autoPick,
+            numWinners,
+        } = req.body;
 
         if (
             !name ||
             !startDate ||
             !endDate ||
-            typeof entryFee !== 'number' ||
+            entryFee === undefined ||
             !lotteryWallet ||
-            typeof numWinners !== 'number'
+            numWinners === undefined
         ) {
-            return res.status(400).json({ error: 'Missing or invalid required lottery fields' });
+            return res.status(400).json({ error: "Missing required lottery fields" });
         }
+
+        // ✅ Ensure entryFee is parsed as a float
+        const parsedEntryFee = parseFloat(entryFee);
+        console.log("Processed values:", {
+            entryFee: parsedEntryFee,
+            type: typeof parsedEntryFee,
+        });
+          
 
         const lottery = await prisma.lottery.create({
             data: {
                 name,
                 startDate: new Date(startDate),
                 endDate: new Date(endDate),
-                entryFee, // now guaranteed to be a number
+                entryFee: parsedEntryFee,
                 lotteryWallet,
-                autoPick: !!autoPick,
-                numWinners
+                autoPick,
+                numWinners,
             },
         });
 
-        return res.status(201).json(lottery);
+        res.status(201).json(lottery);
     } catch (error) {
-        console.error("❌ Failed to create lottery:", error);
-        return res.status(500).json({ error: 'Error creating lottery' });
+        console.error("Create Lottery Error:", error);
+        res.status(500).json({ error: "Error creating lottery" });
     }
 };
-  
-  
-  
+
 // Get current active lottery
 export const getCurrentLottery = async (_req: Request, res: Response) => {
     try {
