@@ -25,7 +25,8 @@ export const createLottery = async (req: Request, res: Response) => {
             !lotteryWallet ||
             numWinners === undefined
         ) {
-            return res.status(400).json({ error: "Missing required lottery fields" });
+            res.status(400).json({ error: "Missing required lottery fields" });
+            return;
         }
 
         // ✅ Ensure entryFee is parsed as a float
