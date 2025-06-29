@@ -22,6 +22,10 @@ export const createLottery = async (req: Request, res: Response) => {
         });
 
         res.status(201).json(lottery);
+        if (!name || !startDate || !endDate || !entryFee || !lotteryWallet || numWinners === undefined) {
+            res.status(400).json({ error: 'Missing required lottery fields' });
+        }
+          
     } catch (error) {
         res.status(500).json({ error: 'Failed to create lottery', details: error });
     }
