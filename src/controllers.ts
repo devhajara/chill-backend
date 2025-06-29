@@ -29,8 +29,7 @@ export const createLottery = async (req: Request, res: Response) => {
             return;
         }
 
-        // ✅ Ensure entryFee is parsed as a float
-        const parsedEntryFee = parseFloat(entryFee);
+        const parsedEntryFee = typeof entryFee === "string" ? parseFloat(entryFee) : entryFee;
         console.log("Processed values:", {
             entryFee: parsedEntryFee,
             type: typeof parsedEntryFee,
