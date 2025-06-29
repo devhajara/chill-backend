@@ -9,12 +9,16 @@ export const createLottery = async (req: Request, res: Response) => {
     try {
         const { name, startDate, endDate, entryFee, lotteryWallet, autoPick, numWinners } = req.body;
 
+        if (!name || !startDate || !endDate || !entryFee || !lotteryWallet || numWinners === undefined) {
+            res.status(400).json({ error: 'Missing required lottery fields' });
+            return;
+        }
         const lottery = await prisma.lottery.create({
             data: {
                 name,
                 startDate: new Date(startDate),
                 endDate: new Date(endDate),
-                entryFee: parseFloat(entryFee),
+                entryFee,
                 lotteryWallet,
                 autoPick,
                 numWinners
@@ -22,10 +26,6 @@ export const createLottery = async (req: Request, res: Response) => {
         });
 
         res.status(201).json(lottery);
-        if (!name || !startDate || !endDate || !entryFee || !lotteryWallet || numWinners === undefined) {
-            res.status(400).json({ error: 'Missing required lottery fields' });
-        }
-          
     } catch (error) {
         res.status(500).json({ error: 'Failed to create lottery', details: error });
     }
