@@ -7,30 +7,51 @@ const prisma = new PrismaClient();
 // Create a new lottery (admin only)
 export const createLottery = async (req: Request, res: Response) => {
     try {
-        const { name, startDate, endDate, entryFee, lotteryWallet, autoPick, numWinners } = req.body;
+        const {
+            name,
+            startDate,
+            endDate,
+            entryFee,
+            lotteryWallet,
+            autoPick,
+            numWinners,
+        } = req.body;
 
-        if (!name || !startDate || !endDate || !entryFee || !lotteryWallet || numWinners === undefined) {
-            res.status(400).json({ error: 'Missing required lottery fields' });
-            return;
+        if (
+            !name ||
+            !startDate ||
+            !endDate ||
+            typeof entryFee !== 'number' || // must be number, not undefined or string
+            !lotteryWallet ||
+            typeof numWinners !== 'number'
+        ) {
+            return res.status(400).json({
+                error: 'Missing or invalid fields: ensure name, dates, entryFee (number), numWinners (number), lotteryWallet are provided',
+            });
         }
-        const lottery = await prisma.lottery.create({
+
+        const newLottery = await prisma.lottery.create({
             data: {
                 name,
                 startDate: new Date(startDate),
                 endDate: new Date(endDate),
-                entryFee,
+                entryFee: parseFloat(entryFee.toString()),
                 lotteryWallet,
-                autoPick,
-                numWinners
-            }
+                autoPick: autoPick ?? true,
+                numWinners,
+            },
         });
 
-        res.status(201).json(lottery);
+        res.status(201).json(newLottery);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to create lottery', details: error });
+        console.error('❌ Backend Create Lottery Error:', error);
+        res.status(500).json({
+            error: 'Failed to create lottery',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        });
     }
 };
-
+  
 // Get current active lottery
 export const getCurrentLottery = async (_req: Request, res: Response) => {
     try {
