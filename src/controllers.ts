@@ -1,6 +1,6 @@
 // src/controllers.ts
 import { Request, Response } from 'express';
-import { PrismaClient,} from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -9,16 +9,23 @@ export const createLottery = async (req: Request, res: Response) => {
     try {
         const { name, startDate, endDate, entryFee, lotteryWallet, autoPick, numWinners } = req.body;
 
-        if (!name || !startDate || !endDate || !entryFee || !lotteryWallet || numWinners === undefined) {
-            res.status(400).json({ error: 'Missing required lottery fields' });
-            return;
+        if (
+            !name ||
+            !startDate ||
+            !endDate ||
+            entryFee === undefined ||
+            !lotteryWallet ||
+            numWinners === undefined
+        ) {
+            return res.status(400).json({ error: 'Missing required lottery fields' });
         }
+
         const lottery = await prisma.lottery.create({
             data: {
                 name,
                 startDate: new Date(startDate),
                 endDate: new Date(endDate),
-                entryFee,
+                entryFee: parseFloat(entryFee),
                 lotteryWallet,
                 autoPick,
                 numWinners
@@ -27,6 +34,7 @@ export const createLottery = async (req: Request, res: Response) => {
 
         res.status(201).json(lottery);
     } catch (error) {
+        console.error("❌ Failed to create lottery:", error);
         res.status(500).json({ error: 'Failed to create lottery', details: error });
     }
 };
@@ -42,9 +50,9 @@ export const getCurrentLottery = async (_req: Request, res: Response) => {
             },
             orderBy: { startDate: 'desc' }
         });
-         res.json(current);
+        res.json(current);
     } catch (error) {
-         res.status(500).json({ error: 'Failed to fetch current lottery' });
+        res.status(500).json({ error: 'Failed to fetch current lottery' });
     }
 };
 
@@ -63,7 +71,7 @@ export const enterLottery = async (req: Request, res: Response) => {
         });
 
         if (existing) {
-            res.status(400).json({ error: 'Wallet already entered' });
+            return res.status(400).json({ error: 'Wallet already entered' });
         }
 
         const EntryModel = await prisma.entry.create({
@@ -93,29 +101,26 @@ export const getEntries = async (req: Request, res: Response) => {
 // Declare winner(s)
 export const declareWinner = async (req: Request, res: Response) => {
     try {
-        const { lotteryId, manualWinners } = req.body; // Optional: manualWinners: string[]
+        const { lotteryId, manualWinners } = req.body;
         const lottery = await prisma.lottery.findUnique({ where: { id: lotteryId } });
         if (!lottery) {
-            res.status(404).json({ error: 'Lottery not found' });
-            return;
+            return res.status(404).json({ error: 'Lottery not found' });
         }
 
         const entries = await prisma.entry.findMany({ where: { lotteryId } });
         if (entries.length === 0) {
-            res.status(400).json({ error: 'No entries found' });
-            return;
+            return res.status(400).json({ error: 'No entries found' });
         }
 
         let selectedWinners: string[] = [];
 
         if (lottery.autoPick) {
             const shuffled = entries.sort(() => 0.5 - Math.random());
-        
-
             selectedWinners = shuffled.slice(0, lottery.numWinners).map((e: any) => e.wallet);
-
-            if (!manualWinners || manualWinners.length === 0)
-                res.status(400).json({ error: 'Manual winners required' });
+        } else {
+            if (!manualWinners || manualWinners.length === 0) {
+                return res.status(400).json({ error: 'Manual winners required' });
+            }
             selectedWinners = manualWinners;
         }
 
