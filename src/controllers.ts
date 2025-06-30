@@ -1,6 +1,6 @@
 // src/controllers.ts
 import { Request, Response } from 'express';
-import { PrismaClient,} from '@prisma/client';
+import { PrismaClient, } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -34,12 +34,20 @@ export const createLottery = async (req: Request, res: Response) => {
             return;
         }
 
-        const parsedEntryFee = parseEntryFee(entryFee);
-        console.log("Processed values:", {
+        // ✅ Safely convert entryFee whether it's a string or number
+        const parsedEntryFee =
+            typeof entryFee === "string" ? parseFloat(entryFee) : entryFee;
+
+        // ✅ Step 2: Add debug log here
+        console.log("🔥 Final values to Prisma:", {
+            name,
+            startDate,
+            endDate,
             entryFee: parsedEntryFee,
-            type: typeof parsedEntryFee,
+            lotteryWallet,
+            autoPick,
+            numWinners,
         });
-          
 
         const lottery = await prisma.lottery.create({
             data: {
@@ -60,6 +68,7 @@ export const createLottery = async (req: Request, res: Response) => {
     }
 };
 
+
 // Get current active lottery
 export const getCurrentLottery = async (_req: Request, res: Response) => {
     try {
@@ -71,9 +80,9 @@ export const getCurrentLottery = async (_req: Request, res: Response) => {
             },
             orderBy: { startDate: 'desc' }
         });
-         res.json(current);
+        res.json(current);
     } catch (error) {
-         res.status(500).json({ error: 'Failed to fetch current lottery' });
+        res.status(500).json({ error: 'Failed to fetch current lottery' });
     }
 };
 
@@ -139,7 +148,7 @@ export const declareWinner = async (req: Request, res: Response) => {
 
         if (lottery.autoPick) {
             const shuffled = entries.sort(() => 0.5 - Math.random());
-        
+
 
             selectedWinners = shuffled.slice(0, lottery.numWinners).map((e: any) => e.wallet);
 
