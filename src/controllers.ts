@@ -4,6 +4,11 @@ import { PrismaClient,} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Utility function to parse entry fee
+function parseEntryFee(entryFee: string | number): number {
+    return typeof entryFee === "string" ? parseFloat(entryFee) : entryFee;
+}
+
 // Create a new lottery (admin only)
 export const createLottery = async (req: Request, res: Response) => {
     try {
@@ -29,7 +34,7 @@ export const createLottery = async (req: Request, res: Response) => {
             return;
         }
 
-        const parsedEntryFee = typeof entryFee === "string" ? parseFloat(entryFee) : entryFee;
+        const parsedEntryFee = parseEntryFee(entryFee);
         console.log("Processed values:", {
             entryFee: parsedEntryFee,
             type: typeof parsedEntryFee,
