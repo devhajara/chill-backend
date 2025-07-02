@@ -19,4 +19,6 @@ router.get('/entries/:lotteryId', controllers_1.getEntries);
 router.post('/winner', controllers_1.declareWinner);
 // Get all winners
 router.get('/winners', controllers_1.getWinners);
+// End the current active lottery
+router.patch('/lottery/end', controllers_1.endCurrentLottery); // ✅ correct
 exports.default = router;

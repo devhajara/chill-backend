@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getWinners = exports.declareWinner = exports.getEntries = exports.enterLottery = exports.getCurrentLottery = exports.createLottery = void 0;
+exports.endCurrentLottery = exports.getWinners = exports.declareWinner = exports.getEntries = exports.enterLottery = exports.getCurrentLottery = exports.createLottery = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 // Utility function to parse entry fee
@@ -161,3 +161,30 @@ const getWinners = (_req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.getWinners = getWinners;
+// PATCH /api/lottery/end — End current active lottery
+const endCurrentLottery = (_req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const currentLottery = yield prisma.lottery.findFirst({
+            where: {
+                endDate: {
+                    gt: new Date(), // means it's still active
+                },
+            },
+            orderBy: { startDate: 'desc' },
+        });
+        if (!currentLottery) {
+            res.status(404).json({ error: 'No active lottery found' });
+            return;
+        }
+        const updated = yield prisma.lottery.update({
+            where: { id: currentLottery.id },
+            data: { endDate: new Date() },
+        });
+        res.json({ success: true, updated }); // ✅ no "return"
+    }
+    catch (error) {
+        console.error('Error ending lottery:', error);
+        res.status(500).json({ error: 'Failed to end lottery' });
+    }
+});
+exports.endCurrentLottery = endCurrentLottery;
