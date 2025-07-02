@@ -7,8 +7,9 @@ import {
     getEntries,
     declareWinner,
     getWinners,
+    endCurrentLottery, // <- Add this
 } from './controllers';
-
+  
 const router = express.Router();
 
 // Admin: Create new lottery
@@ -28,5 +29,9 @@ router.post('/winner', declareWinner);
 
 // Get all winners
 router.get('/winners', getWinners);
+
+// End the current active lottery
+router.patch('/lottery/end', endCurrentLottery); // ✅ correct
+
 
 export default router;

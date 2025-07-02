@@ -176,3 +176,32 @@ export const getWinners = async (_req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to fetch winners' });
     }
 };
+// PATCH /api/lottery/end — End current active lottery
+export const endCurrentLottery = async (_req: Request, res: Response) => {
+    try {
+        const currentLottery = await prisma.lottery.findFirst({
+            where: {
+                endDate: {
+                    gt: new Date(), // means it's still active
+                },
+            },
+            orderBy: { startDate: 'desc' },
+        });
+
+        if (!currentLottery) {
+            res.status(404).json({ error: 'No active lottery found' });
+            return;
+        }
+
+        const updated = await prisma.lottery.update({
+            where: { id: currentLottery.id },
+            data: { endDate: new Date() },
+        });
+
+        res.json({ success: true, updated }); // ✅ no "return"
+    } catch (error) {
+        console.error('Error ending lottery:', error);
+        res.status(500).json({ error: 'Failed to end lottery' });
+    }
+};
+  

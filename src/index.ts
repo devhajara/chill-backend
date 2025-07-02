@@ -29,32 +29,7 @@ app.get('/', (_req, res) => {
 
 // const prisma = new PrismaClient(); // Removed duplicate declaration
 
-app.patch('/api/lottery/end', async (req, res): Promise<void> => {
-    try {
-        const currentLottery = await prisma.lottery.findFirst({
-            orderBy: { startDate: 'desc' }
-        });
-
-        if (!currentLottery) {
-            res.status(404).json({ error: 'No active lottery found' });
-            return;
-        }
-
-        const updated = await prisma.lottery.update({
-            where: { id: currentLottery.id },
-            data: {
-                endDate: new Date()
-            }
-        });
-
-        res.json({ success: true, updated });
-    } catch (error) {
-        console.error("Error ending lottery:", error);
-        res.status(500).json({ error: 'Failed to end lottery' });
-    }
-});
-
-
+  
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
